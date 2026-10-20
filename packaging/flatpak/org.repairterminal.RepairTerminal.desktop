@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Repair Terminal
+Comment=Snake action-RPG with pixel-art biomes and boss encounters
+Exec=repair-terminal
+Icon=org.repairterminal.RepairTerminal
+Terminal=false
+Type=Application
+Categories=Game;ArcadeGame;
+StartupNotify=true

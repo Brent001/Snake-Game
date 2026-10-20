@@ -1,0 +1,4 @@
+# Repair Terminal's core runtime only uses the Python standard library.
+# Tkinter ships with the Python installation and is not a pip package.
+# On Debian/Ubuntu, install it with: sudo apt install python3-tk
+# Optional GPU VFX dependencies are listed in requirements-gpu.txt.

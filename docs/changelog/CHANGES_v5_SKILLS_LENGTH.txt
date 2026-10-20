@@ -1,0 +1,7 @@
+V5 SKILL / BOSS / LENGTH REWORK
+
+- Skill Tree: added skill-affinity modifiers that are consumed by the live ability code. Allocating nodes now changes actual reach, duration, damage, stun, shield, projectile count, cooldown and other skill properties.
+- Skill Tree UI: redesigned into an advanced socket-map layout with class lanes, elemental sectors, active links, resonance progress, and a live skill-stat inspector.
+- Bosses: added stronger character-specific procedural arena VFX and a signature burst on every spell cast, while keeping the existing character-specific attack patterns.
+- Length cap: MAX_LEN is enforced at insertion and food-growth time. The HUD shows LENGTH current / maximum, and eating at the cap no longer queues impossible growth.
+- Runtime validation: project compiles and starts under Tkinter/Xvfb; all profiled player skills and the MAX_LEN boundary were exercised without a traceback.

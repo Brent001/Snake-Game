@@ -1,0 +1,3 @@
+# Optional GPU compositor for the Repair Terminal combat VFX layer
+pyglet>=2.1.16,<2.2
+moderngl>=5.12,<6

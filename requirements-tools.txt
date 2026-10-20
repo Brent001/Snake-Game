@@ -1,0 +1,3 @@
+# Optional dependencies used only to regenerate art/audio source assets.
+Pillow>=10,<13
+numpy>=1.26,<3

@@ -1,0 +1,40 @@
+REPAIR TERMINAL - CREDITS
+
+PROJECT TEAM
+- Brent Kenneth Abrazaldo — Developer / Game Creator
+- Prof. Jay Vila — Professor / Project Adviser
+- Zac Villeno — Co-Developer
+
+AUDIO
+- Taisei Project — Sound-effect and music source material used by Repair Terminal.
+  Project license: MIT. Copyright holders include Lukas Weber and Andrei Alexeyev.
+- Tuck V — Original Taisei Project soundtrack composer; soundtrack is credited by Taisei
+  under CC BY 4.0.
+- Touhou Pixel Dungeon: Reloaded — Source material for selected biome music and sound
+  effects. Project license: GNU GPLv3.
+- Repair Terminal team — Asset trimming, normalization, game-specific mixing, and
+  original and synthesized effects created for this project.
+
+ART / SPRITES
+- Majstek — Touhou Mini 16x16 Pack. The bundled game/assets/touhou/LICENSE.txt contains
+  the asset terms: non-commercial projects only unless permission is obtained, edit/use
+  allowed, and credit required.
+- code farmer — Touhou Pixel Characters. Asset page terms state the pack may be edited,
+  follows Touhou Project fan-work terms, and may not be resold.
+- Danmaku Shot_01 bullet sprite sheet — source material is credited, but the source archive
+  did not include a license statement. Verify the original author's current terms before
+  any public redistribution or commercial release.
+- Touhou Project / ZUN / Team Shanghai Alice — original Touhou characters, world and music
+  inspirations referenced by this fan project. Repair Terminal is an unofficial fan work
+  and is not affiliated with or endorsed by ZUN / Team Shanghai Alice.
+
+SOFTWARE / TECHNOLOGY
+- Python + Tkinter — core runtime and UI.
+- Optional pygame.mixer — audio mixing backend.
+- FFmpeg was used in the project's asset preparation workflow for audio re-encoding.
+
+LICENSE / NOTICE
+- See game/assets/touhou/LICENSE.txt for the bundled Majstek asset terms.
+- See the original Taisei Project COPYING.txt for the MIT license and music attribution.
+- See the Touhou Pixel Dungeon: Reloaded LICENSE.txt for GPLv3 terms.
+- Third-party attribution is provided in-game through the CREDITS screen and here.

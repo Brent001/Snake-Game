@@ -1,0 +1,12 @@
+{
+  "master_volume": 0.9,
+  "music_volume": 1.0,
+  "sfx_volume": 1.0,
+  "mute_audio": false,
+  "vfx_quality": 0,
+  "auto_quality": true,
+  "screen_shake": true,
+  "damage_numbers": true,
+  "fullscreen": true,
+  "fps_cap": 60
+}
