@@ -6,7 +6,8 @@ from ..data.biomes import STYLES
 from ..data.bosses import BOSSES
 from ..data.elements import ECOL, ELEMS, RESON
 from ..data.skills import SKILLS
-from ..data.keybinds import SKILL_LABELS, SKILL_SLOT_IDS, skill_ids_for_bar
+from ..data.keybinds import (SKILL_LABELS, SKILL_SLOT_IDS, skill_ids_for_bar,
+    is_skill_unlocked, skill_unlock_level)
 from ..utils import mix
 
 
@@ -218,14 +219,18 @@ class HudMixin:
         self.ptext(panel_x + panel_w / 2, panel_y + 13, txt[:64], 1, "#ffd34d" if buffs else "#7ea7d5", anchor="c")
 
         # Dedicated signature plate on the lower-right keeps the hotbar center clear.
-        vname = self.skill_tier("v")["short"].upper()
+        signature_unlocked = is_skill_unlocked(self.run_class, "class_skill", self.level)
+        vname = self.skill_tier("v")["short"].upper() if signature_unlocked else "LOCKED LV 3"
         sig_w = min(250, max(190, self.bw - 980))
         sig_x = self.bw - sig_w - 16
         self._pixel_panel(sig_x, self.bh - 122, self.bw - 16, self.bh - 92, self.cls["skill"]["color"])
         sig_key = self.settings.get("skill_slot_keys", {}).get("slot_1", "q").upper()
-        self.ptext(sig_x + 10, self.bh - 113, f"{sig_key} //", 1, "#7b91ae")
-        self.ptext(sig_x + 38, self.bh - 113, vname[:24], 1, self.cls["skill"]["color"])
-        self.ptext(self.bw - 28, self.bh - 113, f"LV {self.skill_lv.get('v',1)}", 1, "#d7e6ff", anchor="e")
+        self.ptext(sig_x + 10, self.bh - 113, f"S1 {sig_key} //", 1, "#7b91ae")
+        self.ptext(sig_x + 57, self.bh - 113, vname[:18], 1,
+                   self.cls["skill"]["color"] if signature_unlocked else "#74839b")
+        if signature_unlocked:
+            self.ptext(self.bw - 28, self.bh - 113, f"LV {self.skill_lv.get('v',1)}",
+                       1, "#d7e6ff", anchor="e")
 
     def hotbar_entries(self):
         """Return movement/primary actions plus five slots on the active bar."""
@@ -238,8 +243,14 @@ class HudMixin:
         for slot_id, skill_id in zip(SKILL_SLOT_IDS,
                                      skill_ids_for_bar(self.run_class, getattr(self, "skill_set", 0))):
             key = str(slot_keys.get(slot_id, "?")).upper()
-            label = self.skill_tier("v")["short"].upper() if skill_id == "class_skill" else SKILL_LABELS[skill_id]
-            color = self.cls["skill"]["color"] if skill_id == "class_skill" else colors[skill_id]
+            unlocked = is_skill_unlocked(self.run_class, skill_id, self.level)
+            required = skill_unlock_level(self.run_class, skill_id)
+            if unlocked:
+                label = self.skill_tier("v")["short"].upper() if skill_id == "class_skill" else SKILL_LABELS[skill_id]
+                color = self.cls["skill"]["color"] if skill_id == "class_skill" else colors[skill_id]
+            else:
+                label = f"LOCK L{required}"
+                color = "#65748b"
             entries.append((skill_id, key, label, color))
         return entries
 
