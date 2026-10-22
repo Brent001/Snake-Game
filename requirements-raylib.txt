@@ -1,0 +1,2 @@
+# Optional: raylib renderer (see docs/development/RAYLIB_MIGRATION.md)
+raylib>=5.5

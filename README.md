@@ -201,3 +201,10 @@ The cleaned source archive can be pushed from your own computer with Git install
 - **Linux/macOS:** `./scripts/upload_to_github.sh`
 
 These helpers initialize the local Git repository when needed, verify the `origin` URL, commit the cleaned project, and push to `https://github.com/Brentph505/snake-game`. They will stop if `origin` points to a different repository. If your GitHub repository has already received commits, reconcile those changes before retrying the push. GitHub authentication is handled by Git's normal credential manager; never paste a token into the script.
+
+## raylib migration kit
+
+`game/render/gfx_raylib.py` is a tk.Canvas-compatible GPU drawing layer; `tools/bench/raylib_poc.py` benchmarks it against Tk. The game itself still runs on Tkinter by default. See `docs/development/RAYLIB_MIGRATION.md`.
+
+    pip install -r requirements-raylib.txt
+    python tools/bench/raylib_poc.py raylib
