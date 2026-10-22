@@ -207,8 +207,9 @@ class SnakeTerminal(StatsMixin, SkillTreeMixin, InputMixin, MenuMixin, Abilities
         self.points = 1                # PASSIVE points (passive tree)
         self.alloc = {f"{self.run_class}:core"}
         self.skill_pts = 1             # SKILL points shared by every active-skill tree branch
-        # Every hotbar skill owns a free root socket in the global SKILL TREE.
-        self.skill_alloc = {f"{self.run_class}:{key}:root" for key, _slot, _name, _col in SKILLS}
+        # Start with movement + the class's primary attack. Other skill roots
+        # are allocated for free only when their level milestone is reached.
+        self.skill_alloc = {f"{self.run_class}:{key}:root" for key in ("dash", "strike")}
         self.skill_lv = {"basic": 1, "v": 1}
         self.tree_tab = "passive"      # "passive" | "skill"
         self.tree_tab_rects = []
