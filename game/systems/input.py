@@ -200,6 +200,8 @@ class InputMixin:
             return
         toggle_key = str(self.settings.get("skill_set_toggle_key", "x")).lower()
         if key == toggle_key:
+            if self.state not in ("playing", "ready"):
+                return
             if was_held:
                 return
             self.skill_set = 1 - int(getattr(self, "skill_set", 0))
