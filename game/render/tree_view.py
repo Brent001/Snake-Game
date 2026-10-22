@@ -12,6 +12,7 @@ from ..config import C_CYAN, C_GOLD, C_MUTED, C_TEXT
 from ..data.elements import ECOL
 from ..data.tree_nodes import ADJ, EDGES, KIND_NAME, TREE, TREE_DEFS, describe
 from ..data.active_skill_tree import SKILL_ADJ, SKILL_DEFS as ACTIVE_SKILL_DEFS, SKILL_EDGES, SKILL_NODES
+from ..data.keybinds import is_skill_unlocked, skill_unlock_level
 from ..data.skills import SKILLS
 from ..utils import mix
 from .ambient import STARS
@@ -930,11 +931,15 @@ class TreeViewMixin:
         n = SKILL_NODES[hover]
         col = defs[n["line"]]["color"]
         stats = describe(n.get("stats", {}))
+        unlocked = is_skill_unlocked(self.run_class, n["line"], self.level)
+        required = skill_unlock_level(self.run_class, n["line"])
         state = "ALLOCATED" if hover in self.skill_alloc else ("AVAILABLE" if self.can_skill_alloc(hover) else "LOCKED")
         lines = [n["name"], f'{defs[n["line"]]["name"]}  •  {KIND_NAME.get(n["kind"], "SKILL")}', *stats[:4]]
         desc = textwrap.wrap(n.get("desc", "Combat upgrade."), width=34)[:3]
         lines.extend(desc)
-        lines.append(state + ("  •  RMB to refund" if state == "ALLOCATED" else ("  •  LMB to upgrade" if state == "AVAILABLE" else "  •  connect a path")))
+        if not unlocked:
+            lines.append(f"UNLOCKS AT LEVEL {required}")
+        lines.append(state + ("  •  RMB to refund" if state == "ALLOCATED" else ("  •  LMB to upgrade" if state == "AVAILABLE" else ("  •  reach Level " + str(required) if not unlocked else "  •  connect a path"))))
         w = min(292, max(190, max(len(x) for x in lines) * 5.2 + 24))
         h = 16 + len(lines) * 14
         mx, my = self.mouse
@@ -1206,9 +1211,12 @@ class TreeViewMixin:
                 yy = 121 + i*row_h
                 level = self.skill_level(line["id"])
                 owned = sum(1 for nid in self.skill_nodes_for_line(line["id"]) if nid in self.skill_alloc)
+                unlocked = is_skill_unlocked(self.run_class, line["id"], self.level)
+                required = skill_unlock_level(self.run_class, line["id"])
                 c.create_rectangle(18, yy, side-18, yy+row_h-4, fill="#091726", outline="#132a43", width=1)
-                c.create_text(25, yy+7, anchor="w", text=f"{line['slot']:<5} {line['name'][:24]}", fill=line["col"], font=("Segoe UI", 5, "bold"))
-                c.create_text(side-24, yy+7, anchor="e", text=f"LV {level}", fill=C_GOLD if level>1 else "#556f91", font=("Segoe UI", 5, "bold"))
+                c.create_text(25, yy+7, anchor="w", text=f"{line['slot']:<5} {line['name'][:24]}", fill=line["col"] if unlocked else "#65748b", font=("Segoe UI", 5, "bold"))
+                status = f"LV {level}" if unlocked else f"LOCK {required}"
+                c.create_text(side-24, yy+7, anchor="e", text=status, fill=C_GOLD if unlocked and level>1 else "#556f91", font=("Segoe UI", 5, "bold"))
                 c.create_text(25, yy+18, anchor="w", text=f"{owned:02d} owned  •  3 paths  •  2 caps", fill="#5e789a", font=("Segoe UI", 4))
             y = 121 + len(rows)*row_h + 7
             c.create_text(20, y, anchor="w", text="NODE LANGUAGE", fill="#7f97b8", font=("Segoe UI", 6, "bold"))
