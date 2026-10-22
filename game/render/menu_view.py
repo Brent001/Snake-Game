@@ -469,6 +469,8 @@ class MenuViewMixin:
             cx = x0 + 22 + (i // half) * colw
             ry = y0 + 22 + (i % half) * 27
             c.create_rectangle(cx, ry, cx + 124, ry + 21, fill="#0c1a38", outline=NEON_C)
+            if key == "X":
+                key = str(self.settings.get("skill_set_toggle_key", "x")).upper()
             c.create_text(cx + 62, ry + 11, text=key, fill="#ffffff", font=MONO)
             c.create_text(cx + 136, ry + 11, text=act, anchor="w", fill=C_TEXT, font=MONO)
         ty = y0 + 36 + half * 27
@@ -573,6 +575,8 @@ class MenuViewMixin:
                    "W/S SELECT    ENTER REBIND    R RESET DEFAULTS    ESC BACK", 2, "#4a6a9a", anchor="c")
 
     def settings_value_text(self, key):
+        if key == "keybindings":
+            return "OPEN"
         s = self.settings[key]
         if key.endswith("_volume"):
             return f"{int(round(s * 100)):3d}%"
