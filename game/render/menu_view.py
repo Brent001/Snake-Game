@@ -499,8 +499,9 @@ class MenuViewMixin:
         y0, y1 = bh * 0.14, bh - 74
         self.panel(x0, y0, x1, y1, NEON_C, 14)
         c.create_text(x0 + 26, y0 + 28, text="AUDIO / VIDEO / ACCESSIBILITY", anchor="w", fill="#ffffff", font=MONO)
-        row_y = y0 + 58
-        row_h = 34
+        row_y = y0 + 48
+        # Fit all settings, including the new keybindings entry, above the help text.
+        row_h = min(34, (y1 - row_y - 88) / max(1, len(SETTINGS_ROWS)))
         for i, (key, label, desc) in enumerate(SETTINGS_ROWS):
             yy = row_y + i * row_h
             selected = i == self.settings_sel
@@ -519,7 +520,7 @@ class MenuViewMixin:
             self.menu_rects.append((x1 - 64, yy + 1, x1 - 34, yy + 26, "settings_next", i))
             if key == "keybindings":
                 self.menu_rects.append((x1 - 148, yy + 1, x1 - 70, yy + 26, "settings_open", i))
-        hy = y1 - 62
+        hy = row_y + len(SETTINGS_ROWS) * row_h + 6
         for i, line in enumerate(SETTINGS_HELP):
             c.create_text(x0 + 26, hy + i * 15, text=line, anchor="w", fill="#5f83ac", font=("Consolas", 7))
         self.menu_rects.append((18, bh - 48, 150, bh - 12, "back", 0))
