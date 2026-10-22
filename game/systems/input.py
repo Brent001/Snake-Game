@@ -5,7 +5,8 @@ Keys: WASD/arrows move - SHIFT dash - Q/E/R/F/C active skill slots - X switch sk
 """
 from ..data.elements import ELEMS
 from ..data.tree_nodes import TREE
-from ..data.keybinds import skill_for_key, SKILL_ACTION_METHODS
+from ..data.keybinds import (skill_for_key, SKILL_ACTION_METHODS, SKILL_LABELS,
+    is_skill_unlocked, skill_unlock_level)
 from .menu import FULL_MENUS, MENU_STATES
 from ..audio import play_sound
 
@@ -219,6 +220,10 @@ class InputMixin:
         skill_id = skill_for_key(self.run_class, getattr(self, "skill_set", 0), slot_keys, key)
         action_name = SKILL_ACTION_METHODS.get(skill_id)
         if action_name:
+            if not is_skill_unlocked(self.run_class, skill_id, self.level):
+                required = skill_unlock_level(self.run_class, skill_id)
+                self.set_message(f"{SKILL_LABELS.get(skill_id, skill_id).upper()} unlocks at Level {required}")
+                return
             getattr(self, action_name)()
             return
         requested = directions.get(key)
