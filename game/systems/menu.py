@@ -1,9 +1,10 @@
 """Menu state machine: main menu, class select, controls, settings, credits and pause."""
 from ..data.classes import CLASSES, CLASS_ORDER
 from ..audio import configure_audio, play_music, play_sound
-from ..settings import save_settings
+from ..settings import (save_settings, DEFAULT_SKILL_SLOT_KEYS, DEFAULT_SKILL_SET_TOGGLE_KEY,
+    _valid_skill_key)
 
-FULL_MENUS = ("menu", "classes", "controls", "settings", "credits")
+FULL_MENUS = ("menu", "classes", "controls", "settings", "credits", "keybindings")
 MENU_STATES = FULL_MENUS + ("paused",)
 
 SETTINGS_ROWS = [
@@ -17,6 +18,7 @@ SETTINGS_ROWS = [
     ("damage_numbers", "DAMAGE NUMBERS", "Floating combat text"),
     ("fullscreen", "FULLSCREEN", "Window / fullscreen"),
     ("fps_cap", "FPS CAP", "30 / 60 / 90 / 120 / UNLIMITED"),
+    ("keybindings", "KEY BINDINGS", "Rebind five skill slots and bar switch"),
 ]
 
 SETTINGS_HELP = [
@@ -24,6 +26,7 @@ SETTINGS_HELP = [
     "MOUSE: click < or > beside a setting.",
     "AUTO QUALITY reduces VFX when the frame time rises.",
     "60 FPS is the recommended target. UNLIMITED follows the renderer as fast as it can.",
+    "KEY BINDINGS lets you assign unique letter keys to each skill slot.",
 ]
 
 CREDITS_LINES = [
@@ -125,6 +128,8 @@ class MenuMixin:
 
     def _settings_change(self, idx, step):
         key = SETTINGS_ROWS[idx][0]
+        if key == "keybindings":
+            return
         s = self.settings
         if key.endswith("_volume"):
             s[key] = max(0.0, min(1.0, round(float(s[key]) + 0.1 * step, 2)))
@@ -146,14 +151,77 @@ class MenuMixin:
 
     def _settings_toggle(self, idx):
         key = SETTINGS_ROWS[idx][0]
-        if key.endswith("_volume"):
-            self._settings_change(idx, 1)
+        if key == "keybindings":
+            self.menu_back = self.state
+            self.state = "keybindings"
+            self.keybinds_sel = 0
+            self.awaiting_keybind = False
+            self.keybind_message = "Select a slot, then press ENTER or click it to rebind."
+            return
+        self._settings_change(idx, 1)
+
+    def reset_keybindings(self):
+        self.settings["skill_slot_keys"] = dict(DEFAULT_SKILL_SLOT_KEYS)
+        self.settings["skill_set_toggle_key"] = DEFAULT_SKILL_SET_TOGGLE_KEY
+        save_settings(self.settings)
+        self.awaiting_keybind = False
+        self.keybind_message = "Default skill keys restored."
+        if hasattr(self, "_ret"):
+            self._ret.pop("hotbar", None)
+
+    def _accept_keybind(self, key):
+        key = str(key).lower()
+        if not _valid_skill_key(key):
+            self.awaiting_keybind = False
+            self.keybind_message = "Use A-Z except movement / global shortcut keys."
+            return
+        slots = self.settings.get("skill_slot_keys", dict(DEFAULT_SKILL_SLOT_KEYS))
+        if self.keybinds_sel < len(DEFAULT_SKILL_SLOT_KEYS):
+            slot = f"slot_{self.keybinds_sel + 1}"
+            other_values = {v for k, v in slots.items() if k != slot}
+            if key in other_values or key == self.settings.get("skill_set_toggle_key", "x"):
+                self.awaiting_keybind = False
+                self.keybind_message = f"{key.upper()} is already assigned. Choose another key."
+                return
+            slots[slot] = key
+            self.settings["skill_slot_keys"] = slots
+            self.keybind_message = f"{slot.replace('_', ' ').upper()} assigned to {key.upper()}."
         else:
-            self._settings_change(idx, 1)
+            if key in set(slots.values()):
+                self.awaiting_keybind = False
+                self.keybind_message = f"{key.upper()} is already a skill slot. Choose another key."
+                return
+            self.settings["skill_set_toggle_key"] = key
+            self.keybind_message = f"Skill-set switch assigned to {key.upper()}."
+        self.awaiting_keybind = False
+        save_settings(self.settings)
+        if hasattr(self, "_ret"):
+            self._ret.pop("hotbar", None)
+        play_sound("menu_select", volume=0.7)
 
     def menu_key(self, key):
         """Keyboard handling for every menu state. Returns True when the key was consumed."""
         st = self.state
+        if st == "keybindings":
+            if self.awaiting_keybind:
+                if key in ("escape", "backspace"):
+                    self.awaiting_keybind = False
+                    self.keybind_message = "Rebind cancelled."
+                else:
+                    self._accept_keybind(key)
+                return True
+            if key in ("up", "w"):
+                self.keybinds_sel = (self.keybinds_sel - 1) % 6
+            elif key in ("down", "s"):
+                self.keybinds_sel = (self.keybinds_sel + 1) % 6
+            elif key in ("return", "enter", "kp_enter", "space"):
+                self.awaiting_keybind = True
+                self.keybind_message = "Press a letter key. ESC cancels."
+            elif key == "r":
+                self.reset_keybindings()
+            elif key in ("escape", "backspace"):
+                self.state = self.menu_back
+            return True
         if st == "controls":
             if key in ("escape", "return", "space", "backspace", "enter", "kp_enter"):
                 self.state = self.menu_back
@@ -223,6 +291,15 @@ class MenuMixin:
                     self.pick_class(idx)
                 elif kind == "back":
                     self.state = self.menu_back
+                elif kind == "settings_open":
+                    self.settings_sel = idx
+                    self._settings_toggle(idx)
+                elif kind == "keybind":
+                    self.keybinds_sel = idx
+                    self.awaiting_keybind = True
+                    self.keybind_message = "Press a letter key. ESC cancels."
+                elif kind == "keybind_reset":
+                    self.reset_keybindings()
                 elif kind == "settings_prev":
                     self.settings_sel = idx
                     self._settings_change(idx, -1)
@@ -238,6 +315,8 @@ class MenuMixin:
                     self.menu_sel = idx
                 elif kind == "class":
                     self.class_sel = idx
-                elif kind in ("settings_prev", "settings_next"):
+                elif kind in ("settings_prev", "settings_next", "settings_open"):
                     self.settings_sel = idx
+                elif kind == "keybind":
+                    self.keybinds_sel = idx
                 return

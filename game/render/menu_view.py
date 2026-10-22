@@ -356,6 +356,8 @@ class MenuViewMixin:
             self.draw_controls()
         elif self.state == "settings":
             self.draw_settings()
+        elif self.state == "keybindings":
+            self.draw_keybindings()
         elif self.state == "credits":
             self.draw_credits()
 
@@ -451,11 +453,10 @@ class MenuViewMixin:
         if self.in_game:
             self.ptext(bw / 2, bh * 0.19 + ch + 16, "APPLIES TO THE NEXT NEW GAME", 2, "#ffd34d", anchor="c")
 
-    CONTROLS = [("WASD / ARROWS", "MOVE"), ("LEFT CLICK", "CLASS ATTACK (FANG / SLAM / BOLT / SLASH)"), ("RIGHT CLICK", "HOLD TO RUN"),
-        ("SHIFT", "DASH"), ("SPACE", "FIRE PULSE CHARGE"), ("Q", "COIL (CRUSH + ARMOUR)"), ("E", "SHED SKIN (HEAL)"),
-        ("R", "HEAT SENSE"), ("T", "TONGUE SCENT"), ("Y", "VENOM SPIT"), ("F", "RATTLE (STUN)"), ("G", "CAMOUFLAGE"), ("V", "CLASS SIGNATURE SKILL"),
-        ("Z", "VOLLEY (RANGED FAN)"), ("C", "BULWARK (TANK STANCE)"), ("1-9 / WHEEL", "SWITCH ELEMENT"),
-        ("TAB", "PASSIVE TREE / SKILL TREE"), ("ESC / P", "PAUSE MENU"), ("M / N", "MINIMAP / RESTART")]
+    CONTROLS = [("WASD / ARROWS", "MOVE"), ("LEFT CLICK", "CLASS PRIMARY ATTACK"), ("RIGHT CLICK", "HOLD TO RUN"),
+        ("SHIFT", "DASH"), ("SPACE", "FIRE PULSE CHARGE"), ("Q E R F C", "FIVE ACTIVE SKILL SLOTS"),
+        ("X", "SWITCH SKILL SET"), ("1-9 / WHEEL / [ ]", "SWITCH ELEMENT"), ("TAB", "PASSIVE / SKILL TREES"),
+        ("ESC / P", "PAUSE MENU"), ("M / N", "MINIMAP / RESTART"), ("SETTINGS", "KEY BINDINGS / RESET DEFAULTS")]
 
     def draw_controls(self):
         c, bw, bh = self.canvas, self.bw, self.bh
@@ -468,11 +469,21 @@ class MenuViewMixin:
             cx = x0 + 22 + (i // half) * colw
             ry = y0 + 22 + (i % half) * 27
             c.create_rectangle(cx, ry, cx + 124, ry + 21, fill="#0c1a38", outline=NEON_C)
+            if key == "X":
+                key = str(self.settings.get("skill_set_toggle_key", "x")).upper()
             c.create_text(cx + 62, ry + 11, text=key, fill="#ffffff", font=MONO)
             c.create_text(cx + 136, ry + 11, text=act, anchor="w", fill=C_TEXT, font=MONO)
         ty = y0 + 36 + half * 27
-        tips = ["HIT A WALL OR OBSTACLE = DAMAGE, NOT DEATH.  PRESS THE OPPOSITE KEY WHILE BLOCKED TO REVERSE THE SNAKE.",
-            "EAT FOOD = LONGER SNAKE AND MORE MAX HP.   LEVEL UP YOUR SKILLS ON THE SKILL TREE."]
+        from ..data.keybinds import SKILL_LABELS, SKILL_SLOT_IDS, skill_ids_for_bar
+        slot_keys = self.settings.get("skill_slot_keys", {})
+        def bar_hint(index):
+            items = []
+            for slot, skill_id in zip(SKILL_SLOT_IDS, skill_ids_for_bar(self.run_class, index)):
+                ability = self.skill_tier("v")["short"].upper() if skill_id == "class_skill" else SKILL_LABELS[skill_id]
+                items.append(f"{slot_keys.get(slot, '?').upper()} {ability}")
+            return f"SET {index + 1}: " + "  /  ".join(items)
+        tips = [bar_hint(0), bar_hint(1),
+            "HIT A WALL / OBSTACLE = DAMAGE, NOT DEATH. PRESS THE OPPOSITE DIRECTION WHILE BLOCKED TO REVERSE."]
         for k, line in enumerate(tips):
             c.create_text(x0 + 22, ty + k * 18, anchor="w", text=line, fill="#ffd34d", font=MONO)
         self.menu_rects.append((18, bh - 44, 150, bh - 10, "back", 0))
@@ -488,8 +499,9 @@ class MenuViewMixin:
         y0, y1 = bh * 0.14, bh - 74
         self.panel(x0, y0, x1, y1, NEON_C, 14)
         c.create_text(x0 + 26, y0 + 28, text="AUDIO / VIDEO / ACCESSIBILITY", anchor="w", fill="#ffffff", font=MONO)
-        row_y = y0 + 58
-        row_h = 34
+        row_y = y0 + 48
+        # Fit all settings, including the new keybindings entry, above the help text.
+        row_h = min(34, (y1 - row_y - 88) / max(1, len(SETTINGS_ROWS)))
         for i, (key, label, desc) in enumerate(SETTINGS_ROWS):
             yy = row_y + i * row_h
             selected = i == self.settings_sel
@@ -506,15 +518,66 @@ class MenuViewMixin:
             c.create_text(x1 - 49, yy + 12, text=">", fill=NEON_C, font=MONO)
             self.menu_rects.append((x1 - 184, yy + 1, x1 - 154, yy + 26, "settings_prev", i))
             self.menu_rects.append((x1 - 64, yy + 1, x1 - 34, yy + 26, "settings_next", i))
-        hy = y1 - 62
+            if key == "keybindings":
+                self.menu_rects.append((x1 - 148, yy + 1, x1 - 70, yy + 26, "settings_open", i))
+        hy = row_y + len(SETTINGS_ROWS) * row_h + 6
         for i, line in enumerate(SETTINGS_HELP):
             c.create_text(x0 + 26, hy + i * 15, text=line, anchor="w", fill="#5f83ac", font=("Consolas", 7))
         self.menu_rects.append((18, bh - 48, 150, bh - 12, "back", 0))
         c.create_rectangle(18, bh - 48, 150, bh - 12, fill="#0a1024", outline=NEON_C, width=2)
         self.ptext(84, bh - 37, "< BACK", 2, NEON_C, anchor="c")
-        self.ptext(bw / 2, bh - 20, "W/S SELECT    A/D CHANGE    ENTER TOGGLE    ESC BACK", 2, "#4a6a9a", anchor="c")
+        self.ptext(bw / 2, bh - 20, "W/S SELECT    A/D CHANGE    ENTER OPEN    ESC BACK", 2, "#4a6a9a", anchor="c")
+
+    def draw_keybindings(self):
+        c, bw, bh = self.canvas, self.bw, self.bh
+        self.ptext(bw / 2, bh * 0.045, "KEY BINDINGS", 6, anchor="c",
+                   shadow=("#6a1060", 3, 3), grad=("#8ffbff", "#ff5da2"))
+        x0, x1 = max(44, (bw - 700) / 2), min(bw - 44, (bw + 700) / 2)
+        y0, row_h = bh * 0.16, min(62, (bh * 0.55) / 6)
+        self.panel(x0, y0, x1, y0 + 6 * row_h + 105, NEON_C, 14)
+        c.create_text(x0 + 28, y0 + 24, text="SKILL BAR  //  FIVE CLOSE-REACH SLOTS + TOGGLE",
+                      anchor="w", fill="#ffffff", font=MONO)
+        slot_keys = self.settings.get("skill_slot_keys", {})
+        rows = [(f"SLOT {i + 1}", slot_keys.get(f"slot_{i + 1}", "?").upper(),
+                 "Shared by the same position on both skill sets") for i in range(5)]
+        rows.append(("SWITCH SKILL SET", self.settings.get("skill_set_toggle_key", "x").upper(),
+                     "Swap the five active skills without resetting cooldowns"))
+        for i, (label, value, desc) in enumerate(rows):
+            yy = y0 + 44 + i * row_h
+            selected = i == getattr(self, "keybinds_sel", 0)
+            c.create_rectangle(x0 + 20, yy, x1 - 20, yy + row_h - 6,
+                               fill="#0d1e3e" if selected else "#080f23",
+                               outline=NEON_C if selected else "#1b3558", width=2 if selected else 1)
+            c.create_text(x0 + 36, yy + 13, text=label, anchor="w",
+                          fill="#ffffff" if selected else "#7ea6d8", font=("Consolas", 10, "bold"))
+            c.create_text(x0 + 36, yy + 31, text=desc, anchor="w",
+                          fill="#4f719b", font=("Consolas", 7))
+            c.create_rectangle(x1 - 118, yy + 7, x1 - 36, yy + row_h - 14,
+                               fill="#09132b", outline=NEON_C)
+            val = "PRESS KEY..." if selected and getattr(self, "awaiting_keybind", False) else value
+            c.create_text(x1 - 77, yy + row_h / 2 - 2, text=val, fill=NEON_C,
+                          font=("Consolas", 12, "bold"))
+            self.menu_rects.append((x0 + 20, yy, x1 - 20, yy + row_h - 6, "keybind", i))
+        footer_y = y0 + 44 + 6 * row_h + 8
+        c.create_rectangle(x0 + 24, footer_y, x0 + 190, footer_y + 30,
+                           fill="#09132b", outline=NEON_P, width=2)
+        c.create_text(x0 + 107, footer_y + 15, text="RESET DEFAULTS (R)",
+                      fill=NEON_P, font=("Consolas", 8, "bold"))
+        self.menu_rects.append((x0 + 24, footer_y, x0 + 190, footer_y + 30, "keybind_reset", 0))
+        message = ("PRESS A LETTER KEY  •  ESC CANCELS" if getattr(self, "awaiting_keybind", False)
+                   else getattr(self, "keybind_message", "W/S SELECT  •  ENTER REBIND  •  R RESET"))
+        c.create_text(x0 + 210, footer_y + 15, text=message[:78], anchor="w",
+                      fill="#ffd34d" if getattr(self, "awaiting_keybind", False) else "#8daed4",
+                      font=("Consolas", 8))
+        self.menu_rects.append((18, bh - 48, 150, bh - 12, "back", 0))
+        c.create_rectangle(18, bh - 48, 150, bh - 12, fill="#0a1024", outline=NEON_C, width=2)
+        self.ptext(84, bh - 37, "< BACK", 2, NEON_C, anchor="c")
+        self.ptext(bw / 2, bh - 20,
+                   "W/S SELECT    ENTER REBIND    R RESET DEFAULTS    ESC BACK", 2, "#4a6a9a", anchor="c")
 
     def settings_value_text(self, key):
+        if key == "keybindings":
+            return "OPEN"
         s = self.settings[key]
         if key.endswith("_volume"):
             return f"{int(round(s * 100)):3d}%"

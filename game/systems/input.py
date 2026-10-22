@@ -1,15 +1,20 @@
 """Keyboard and mouse handlers.
 
 Mouse: LEFT = attack (aimed), RIGHT (hold) = run, WHEEL = switch element.
-Keys:  WASD/arrows move - SHIFT dash - Q E R T Y F G Z C skills - 1-9 element - TAB trees (1 passive / 2 skill) - ESC pause.
+Keys: WASD/arrows move - SHIFT dash - Q/E/R/F/C active skill slots - X switch skill set - 1-9 element - TAB trees - ESC pause.
 """
 from ..data.elements import ELEMS
 from ..data.tree_nodes import TREE
+from ..data.keybinds import (skill_for_key, SKILL_ACTION_METHODS, SKILL_LABELS,
+    is_skill_unlocked, skill_unlock_level)
 from .menu import FULL_MENUS, MENU_STATES
 from ..audio import play_sound
 
 
 class InputMixin:
+    def on_key_release(self, event):
+        getattr(self, "held_keys", set()).discard(event.keysym.lower())
+
     # ---- mouse
     def on_press(self, e):
         self.mouse, self.aim_ok = (e.x, e.y), True
@@ -131,6 +136,9 @@ class InputMixin:
     # ---- keyboard
     def on_key_press(self, event):
         key = event.keysym.lower()
+        was_held = key in getattr(self, "held_keys", set())
+        if hasattr(self, "held_keys"):
+            self.held_keys.add(key)
         directions = {"up": (0, -1), "w": (0, -1), "down": (0, 1), "s": (0, 1),
             "left": (-1, 0), "a": (-1, 0), "right": (1, 0), "d": (1, 0)}
         if key == "f11":
@@ -187,8 +195,20 @@ class InputMixin:
         if key == "space":
             self.shoot()
             return
-        if key in ("shift_l", "shift_r", "x"):
+        if key in ("shift_l", "shift_r"):
             self.dash()
+            return
+        toggle_key = str(self.settings.get("skill_set_toggle_key", "x")).lower()
+        if key == toggle_key:
+            if self.state not in ("playing", "ready"):
+                return
+            if was_held:
+                return
+            self.skill_set = 1 - int(getattr(self, "skill_set", 0))
+            if hasattr(self, "_ret"):
+                self._ret.pop("hotbar", None)
+            self.set_message(f"SKILL SET {self.skill_set + 1} ACTIVE")
+            self.update_hud()
             return
         if key in ("bracketleft", "bracketright"):
             self.cycle_element(1 if key == "bracketright" else -1)
@@ -198,10 +218,15 @@ class InputMixin:
             if idx < len(ELEMS) and ELEMS[idx] in self.unlocked:
                 self.elem = ELEMS[idx]
             return
-        actions = {"q": self.coil, "e": self.shed, "r": self.heat_sense, "t": self.tongue, "y": self.spit,
-            "f": self.rattle, "g": self.camo, "z": self.volley, "c": self.bulwark, "v": self.class_skill}
-        if key in actions:
-            actions[key]()
+        slot_keys = self.settings.get("skill_slot_keys", {})
+        skill_id = skill_for_key(self.run_class, getattr(self, "skill_set", 0), slot_keys, key)
+        action_name = SKILL_ACTION_METHODS.get(skill_id)
+        if action_name:
+            if not is_skill_unlocked(self.run_class, skill_id, self.level):
+                required = skill_unlock_level(self.run_class, skill_id)
+                self.set_message(f"{SKILL_LABELS.get(skill_id, skill_id).upper()} unlocks at Level {required}")
+                return
+            getattr(self, action_name)()
             return
         requested = directions.get(key)
         if not requested or self.state in ("failed", "won", "paused"):

@@ -31,19 +31,28 @@ Core gameplay uses the Python standard library plus Tkinter; `requirements.txt` 
 
 ## Controls
 
-| Input                  | Action                                                       |
-|------------------------|--------------------------------------------------------------|
-| W A S D / arrows       | move                                                         |
-| **Left click**         | attack toward the cursor (aimed STRIKE, or aimed BOLT in Ranged form); hold to repeat |
-| Right click (hold)     | run                                                          |
-| Shift                  | dash                                                         |
-| Space                  | fire a pulse charge                                          |
-| **Q E R T Y F G Z C V**  | snake skills + the class signature skill on V |
-| 1-9 / mouse wheel / [ ]| switch element                                               |
-| Tab                    | skill tree (incl. the three evolution branches)              |
-| Esc / P                | pause menu                                                   |
-| Enter                  | respawn after dying                                          |
-| M / N / F11            | minimap / restart / fullscreen                               |
+| Input | Action |
+|---|---|
+| W A S D / arrows | Move |
+| **Left click** | Aim and repeat the class primary attack |
+| Right click (hold) | Run |
+| Shift | Dash |
+| Space | Fire a pulse charge |
+| **Q E R F C** | Five close-reach skill slots on the active bar |
+| **X** | Switch between two class-specific skill bars |
+| 1-9 / mouse wheel / [ ] | Switch element |
+| Tab | Open passive / active skill trees |
+| Esc / P | Pause menu |
+| Enter | Respawn after dying |
+| M / N / F11 | Minimap / restart / fullscreen |
+
+The default skill slots are **Q, E, R, F, C** on both bars; each class has different skill assignments. Open **Settings → Key Bindings** to remap slots or the bar-switch key. Duplicate bindings and movement/global shortcuts are rejected.
+
+### Ability progression
+- Level 1 starts with the class primary attack, Dash and the pulse charge.
+- Shed Skin unlocks at Level 2; the class signature skill unlocks at Level 3.
+- The remaining class-specific utility skills unlock one per level from Levels 4–11.
+- Locked abilities display their required level and cannot be cast or upgraded before unlocking.
 
 ## Gameplay additions
 
@@ -93,7 +102,8 @@ renderer means porting the drawing layer to pygame-ce / moderngl / pyglet.
         ├── config.py            # tuning constants (grid size, timings, combat numbers) + colour palette
         ├── utils.py             # rect(), mix(), same(), rounded_rect()
         │
-        ├── data/                # STATIC DATA - no logic, safe to tweak/balance
+        ├── data/                # STATIC DATA - no logic, safe to tweak
+        │   ├── keybinds.py      # class-specific dual skill bars and key dispatch/balance
         │   ├── elements.py      # ELEMS, colours, reaction table, resonances, stat labels
         │   ├── tree_nodes.py    # skill tree nodes, positions, edges (TREE / EDGES / ADJ) + evolution FORM_NODES
         │   ├── classes.py       # Viper / Python / Cobra / Mamba (stats, colours, descriptions)

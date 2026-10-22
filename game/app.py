@@ -100,7 +100,9 @@ class SnakeTerminal(StatsMixin, SkillTreeMixin, InputMixin, MenuMixin, Abilities
         self.tree_pan = [0.0, 0.0]
         self.tree_zoom = 0.75
         self.last_time = time.perf_counter()
+        self.held_keys = set()
         self.root.bind("<KeyPress>", self.on_key_press)
+        self.root.bind("<KeyRelease>", self.on_key_release)
         self.root.bind("<FocusOut>", self.on_focus_out)
         self.pclass = "viper"
         self.chrome = True
@@ -158,6 +160,7 @@ class SnakeTerminal(StatsMixin, SkillTreeMixin, InputMixin, MenuMixin, Abilities
         self.root.destroy()
 
     def on_focus_out(self, _e=None):
+        self.held_keys.clear()
         self.run_held = self.lmb_held = False
         if self.state == "playing":
             self.pause()
@@ -198,13 +201,15 @@ class SnakeTerminal(StatsMixin, SkillTreeMixin, InputMixin, MenuMixin, Abilities
         self.lunge_dir = (0.0, -1.0)
         self.run_class = self.pclass
         self.cls = CLASSES[self.run_class]
+        self.skill_set = 0  # Every new run starts on the primary skill bar.
         self.level = 1
         self.xp = 0.0
         self.points = 1                # PASSIVE points (passive tree)
         self.alloc = {f"{self.run_class}:core"}
         self.skill_pts = 1             # SKILL points shared by every active-skill tree branch
-        # Every hotbar skill owns a free root socket in the global SKILL TREE.
-        self.skill_alloc = {f"{self.run_class}:{key}:root" for key, _slot, _name, _col in SKILLS}
+        # Start with movement + the class's primary attack. Other skill roots
+        # are allocated for free only when their level milestone is reached.
+        self.skill_alloc = {f"{self.run_class}:{key}:root" for key in ("dash", "strike")}
         self.skill_lv = {"basic": 1, "v": 1}
         self.tree_tab = "passive"      # "passive" | "skill"
         self.tree_tab_rects = []
@@ -288,7 +293,7 @@ class SnakeTerminal(StatsMixin, SkillTreeMixin, InputMixin, MenuMixin, Abilities
         self.play_zone_music()
         self.update_camera(0, instant=True)
         self.update_hud()
-        self.set_message("WASD move | LEFT-CLICK attack | RIGHT-CLICK (hold) run | Shift dash | Q E R T Y F G Z C skills | 1-9 / wheel element | TAB tree | ESC pause")
+        self.set_message("WASD move | LMB attack | RMB run | Shift dash | Q E R F C skills | X switch skill set | 1-9 / wheel element | TAB trees | ESC pause")
 
     def respawn(self):
         cells = list(self.save["cells"])

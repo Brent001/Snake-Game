@@ -6,6 +6,7 @@ from ..data.classes import CLASSES
 from ..data.elements import ELEMS
 from ..data.tree_nodes import TREE
 from ..data.active_skill_tree import SKILL_NODES, skill_nodes_for_line, skill_level
+from ..data.keybinds import SKILL_LABELS, skills_unlocked_at_level
 from ..audio import play_sound
 
 
@@ -229,11 +230,22 @@ class StatsMixin:
             self.level += 1
             self.points += 1
             self.skill_pts += 1
+            newly_unlocked = skills_unlocked_at_level(self.run_class, self.level)
+            for skill_id in newly_unlocked:
+                root_id = f"{self.run_class}:{skill_id}:root"
+                if root_id in SKILL_NODES:
+                    self.skill_alloc.add(root_id)
             self.recompute()
             self.hp, self.stam = self.maxhp, self.maxstam
             self.float_text(hx, hy - 1.4, f"LEVEL UP! {self.level}", "#ffffff")
             play_sound("levelup", volume=0.9)
-            self.set_message(f"LEVEL {self.level}!  +1 passive point  +1 skill point    |    TAB = passive tree / skill tree")
+            unlocked_text = ", ".join(SKILL_LABELS.get(skill_id, skill_id).upper()
+                                      for skill_id in newly_unlocked)
+            message = f"LEVEL {self.level}!  +1 passive point  +1 skill point"
+            if unlocked_text:
+                message += f"  •  UNLOCKED: {unlocked_text}"
+            message += "  |  TAB = passive tree / skill tree"
+            self.set_message(message)
         self.update_hud()
 
     def heal(self, n):

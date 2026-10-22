@@ -6,6 +6,8 @@ from ..data.biomes import STYLES
 from ..data.bosses import BOSSES
 from ..data.elements import ECOL, ELEMS, RESON
 from ..data.skills import SKILLS
+from ..data.keybinds import (SKILL_LABELS, SKILL_SLOT_IDS, skill_ids_for_bar,
+    is_skill_unlocked, skill_unlock_level)
 from ..utils import mix
 
 
@@ -217,22 +219,56 @@ class HudMixin:
         self.ptext(panel_x + panel_w / 2, panel_y + 13, txt[:64], 1, "#ffd34d" if buffs else "#7ea7d5", anchor="c")
 
         # Dedicated signature plate on the lower-right keeps the hotbar center clear.
-        vname = self.skill_tier("v")["short"].upper()
+        signature_unlocked = is_skill_unlocked(self.run_class, "class_skill", self.level)
+        vname = self.skill_tier("v")["short"].upper() if signature_unlocked else "LOCKED LV 3"
         sig_w = min(250, max(190, self.bw - 980))
         sig_x = self.bw - sig_w - 16
         self._pixel_panel(sig_x, self.bh - 122, self.bw - 16, self.bh - 92, self.cls["skill"]["color"])
-        self.ptext(sig_x + 10, self.bh - 113, "V //", 1, "#7b91ae")
-        self.ptext(sig_x + 38, self.bh - 113, vname[:24], 1, self.cls["skill"]["color"])
-        self.ptext(self.bw - 28, self.bh - 113, f"LV {self.skill_lv.get('v',1)}", 1, "#d7e6ff", anchor="e")
+        sig_key = self.settings.get("skill_slot_keys", {}).get("slot_1", "q").upper()
+        self.ptext(sig_x + 10, self.bh - 113, f"S1 {sig_key} //", 1, "#7b91ae")
+        self.ptext(sig_x + 57, self.bh - 113, vname[:18], 1,
+                   self.cls["skill"]["color"] if signature_unlocked else "#74839b")
+        if signature_unlocked:
+            self.ptext(self.bw - 28, self.bh - 113, f"LV {self.skill_lv.get('v',1)}",
+                       1, "#d7e6ff", anchor="e")
+
+    def hotbar_entries(self):
+        """Return movement/primary actions plus five slots on the active bar."""
+        colors = {skill_id: color for skill_id, _key, _label, color in SKILLS}
+        entries = [
+            ("dash", "SHIFT", "DASH", colors["dash"]),
+            ("strike", "LMB", self.skill_tier("basic")["short"].upper(), self.cls["basic"]["col"]),
+        ]
+        slot_keys = self.settings.get("skill_slot_keys", {})
+        for slot_id, skill_id in zip(SKILL_SLOT_IDS,
+                                     skill_ids_for_bar(self.run_class, getattr(self, "skill_set", 0))):
+            key = str(slot_keys.get(slot_id, "?")).upper()
+            unlocked = is_skill_unlocked(self.run_class, skill_id, self.level)
+            required = skill_unlock_level(self.run_class, skill_id)
+            if unlocked:
+                label = self.skill_tier("v")["short"].upper() if skill_id == "class_skill" else SKILL_LABELS[skill_id]
+                color = self.cls["skill"]["color"] if skill_id == "class_skill" else colors[skill_id]
+            else:
+                label = f"LOCK L{required}"
+                color = "#65748b"
+            entries.append((skill_id, key, label, color))
+        return entries
 
     def draw_hotbar(self):
-        sig = (self.bw, self.bh, tuple(self.cd[sk[0]] <= 0 for sk in SKILLS), self.elem, tuple(self.unlocked), self.S["form_ranged"] > 0, self.cls["skill"]["name"], self.run_class, self.skill_lv["basic"], self.skill_lv["v"])
+        entries = self.hotbar_entries()
+        sig = (self.bw, self.bh, tuple((k, key, label, self.cd[k] <= 0) for k, key, label, _col in entries),
+               self.elem, tuple(self.unlocked), self.S["form_ranged"] > 0, self.cls["skill"]["name"],
+               self.run_class, self.skill_lv["basic"], self.skill_lv["v"], getattr(self, "skill_set", 0),
+               tuple(self.settings.get("skill_slot_keys", {}).items()), self.settings.get("skill_set_toggle_key", "x"))
         self.retained("hotbar", sig, self._hotbar_items)
-        c = self.canvas                                         # cooldown shading changes every frame, only while cooling down
-        w = min(46, (self.bw - 294) / len(SKILLS))
-        x0 = max(284, self.bw / 2 - len(SKILLS) * w / 2)
+        c = self.canvas
+        count = len(entries)
+        w = min(58, (self.bw - 220) / max(1, count))
+        total = count * w
+        # Center the compact bar in the space right of the lower-left vitals panel.
+        x0 = 294 + max(0, (self.bw - 294 - total) / 2)
         y = self.bh - 66
-        for i, (k, key, label, col) in enumerate(SKILLS):
+        for i, (k, key, label, col) in enumerate(entries):
             cd = self.cd[k]
             if cd > 0:
                 x = x0 + i * w
@@ -241,12 +277,13 @@ class HudMixin:
 
     def _hotbar_items(self):
         c = self.canvas
-        count = len(SKILLS)
-        w = min(58, (self.bw - 320) / max(1, count))
+        entries = self.hotbar_entries()
+        count = len(entries)
+        w = min(58, (self.bw - 220) / max(1, count))
         total = count * w
         x0 = max(294, self.bw / 2 - total / 2)
         y = self.bh - 66
-        for i, (k, key, label, col) in enumerate(SKILLS):
+        for i, (k, key, shown, col) in enumerate(entries):
             x = x0 + i * w
             cd = self.cd[k]
             active_col = col if cd <= 0 else "#28405d"
@@ -256,12 +293,7 @@ class HudMixin:
             cx = x + w / 2
             c.create_rectangle(cx - 3, y + 10, cx + 3, y + 16, fill=active_col, outline="")
             c.create_rectangle(cx - 1, y + 8, cx + 1, y + 18, fill=active_col, outline="")
-            shown = label
-            if k == "strike":
-                shown = "BOLT" if (self.S["form_ranged"] > 0 and self.run_class != "cobra") else self.skill_tier("basic")["short"]
-            elif k == "class_skill":
-                shown = self.skill_tier("v")["short"]
-            self.ptext(cx, y + 21, shown[:7].upper(), 1, active_col, anchor="c")
+            self.ptext(cx, y + 21, shown[:9].upper(), 1, active_col, anchor="c")
             self.ptext(cx, y + 32, key.upper(), 1, "#7c99bb", anchor="c")
             if cd > 0:
                 frac = min(1.0, cd / max(0.01, self.cdmax[k]))
@@ -271,7 +303,10 @@ class HudMixin:
         # Element chips, selected element gets a pulsing pixel frame.
         es = ["pulse"] + self.unlocked
         ex0 = self.bw / 2 - len(es) * 24 / 2
-        ey = y - 18
+        ey = y - 28
+        toggle_key = str(self.settings.get("skill_set_toggle_key", "x")).upper()
+        self.ptext(x0 + 4, ey + 12, f"SET {getattr(self, 'skill_set', 0) + 1} / {toggle_key}", 1,
+                   "#7c99bb")
         for i, e in enumerate(es):
             x = ex0 + i * 24 + 12
             sel = e == self.elem

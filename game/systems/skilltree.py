@@ -6,6 +6,7 @@ from ..data.tree_nodes import ADJ, TREE, nodes_for_class, TREE_DEFS, describe
 from ..data.active_skill_tree import (SKILL_NODES, SKILL_ADJ, SKILL_DEFS as ACTIVE_SKILL_DEFS,
                                        LINE_ALIASES, canonical_line, skill_nodes_for_class, skill_nodes_for_line,
                                        skill_level, current_node as current_skill_node)
+from ..data.keybinds import is_skill_unlocked, skill_unlock_level
 from ..data.skills import SKILLS
 
 
@@ -206,6 +207,8 @@ class SkillTreeMixin:
         if nid in self.skill_alloc or self.skill_pts <= 0:
             return False
         n = SKILL_NODES[nid]
+        if not is_skill_unlocked(self.run_class, n.get("line", ""), self.level):
+            return False
         if not any(nb in self.skill_alloc for nb in SKILL_ADJ[nid]):
             return False
         group = n.get("choice")
