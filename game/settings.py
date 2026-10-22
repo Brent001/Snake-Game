@@ -37,7 +37,7 @@ DEFAULT_SKILL_SLOT_KEYS = {
     "slot_5": "c",
 }
 DEFAULT_SKILL_SET_TOGGLE_KEY = "x"
-_RESERVED_KEYBINDINGS = frozenset("wasdpmn")
+_RESERVED_KEYBINDINGS = frozenset("wasdpmnk")
 
 
 def _valid_skill_key(value):
@@ -106,7 +106,7 @@ def load_settings():
         raw_slots = {}
     clean_slots = {}
     used = set()
-    allowed_keys = "qwertyuiopfg h j l z c v b".replace(" ", "")
+    allowed_keys = "qwertyuiopasdfghjklzxcvbnm"
     for slot, default in DEFAULT_SKILL_SLOT_KEYS.items():
         candidate = raw_slots.get(slot, default)
         candidate = candidate.lower() if isinstance(candidate, str) else default
