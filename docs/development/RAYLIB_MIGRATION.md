@@ -1,12 +1,12 @@
 # Moving Repair Terminal from Tkinter to raylib
 
-This kit is a **drop-in drawing layer**, a benchmark, and a plan. Nothing in your game logic has to change.
+This kit is a **drop-in drawing layer**, a benchmark, and a plan.  Nothing in your game logic has to change.
 
 ## Files
 
 | File | What it is |
 |---|---|
-| `game/render/gfx_raylib.py` | `RaylibCanvas`: a `tk.Canvas` look-alike (`create_rectangle / oval / line / polygon / arc / text / image`) drawing through raylib on the GPU. Also `additive()`, `glow()`, `draw_sprite()` for things Tk cannot do. |
+| `game/render/gfx_raylib.py` | `RaylibCanvas`: a `tk.Canvas` look-alike (create_rectangle / oval / line / polygon / arc / text / image) drawing through raylib on the GPU. Also `additive()`, `glow()`, `draw_sprite()` for things Tk cannot do. |
 | `tools/bench/raylib_poc.py` | Same boss-fight-like scene on Tk and on raylib. |
 
 Install: `pip install raylib` (provides the `raylib` and `pyray` modules; tested with raylib 6.0.1).
@@ -32,17 +32,17 @@ submit time is. Run `python tools/bench/raylib_poc.py both --frames 600` on your
 Take-aways:
 
 1. **A literal port moves the rendering to the GPU but does not shrink the Python-side cost.** Every primitive is still one
-   Python call (about 1-10 us each). The win of the literal port is that Tk's own work (item creation in Tcl, GDI
+   Python call (about 1-10 us each).  The win of the literal port is that Tk's own work (item creation in Tcl, GDI
    rasterisation on Windows, `after()` timer jitter) disappears and there is no second overlay window.
 2. **The big CPU win comes from drawing fewer, bigger things.** Replacing a bullet's polygon + outline + trail with one
-   textured quad cut submit time about 3x. You already ship hue/rotation atlases in `game/assets/bullets/`.
+   textured quad cut submit time about 3x.  You already ship hue/rotation atlases in `game/assets/bullets/`.
 3. Python cost per call matters: `pyray`'s convenience functions allocate a struct per argument and were 5-8x slower than
    calling the low-level `raylib` module with reused structs, which is what `gfx_raylib.py` does.
 
 ## Migration plan
 
 1. **Swap the canvas.** In `app.py` create `RaylibCanvas(960, 600)` instead of `FastCanvas`, and turn `animate()` into
-   `while c.frame_begin(): update(dt); draw(); c.frame_end()`. Replace `c.delete("all")` calls (they are no-ops).
+   `while c.frame_begin(): update(dt); draw(); c.frame_end()`.  Replace `c.delete("all")` calls (they are no-ops).
 2. **Port `PhotoImage` code** (`pixelart.py`, `sprites.py`, the 20 call sites). Load PNGs with `c.load_texture()`;
    for procedurally generated pixel art build an `Image` with raylib or Pillow, then upload it once as a texture.
 3. **Port input.** Replace the 15 `bind()` calls with polling: `lib.IsKeyDown`, `lib.IsKeyPressed`, `lib.GetMouseX/Y`,
