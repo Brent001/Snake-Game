@@ -265,7 +265,8 @@ class HudMixin:
         count = len(entries)
         w = min(58, (self.bw - 220) / max(1, count))
         total = count * w
-        x0 = max(294, self.bw / 2 - total / 2)
+        # Center the compact bar in the space right of the lower-left vitals panel.
+        x0 = 294 + max(0, (self.bw - 294 - total) / 2)
         y = self.bh - 66
         for i, (k, key, label, col) in enumerate(entries):
             cd = self.cd[k]
