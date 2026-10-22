@@ -48,6 +48,12 @@ Core gameplay uses the Python standard library plus Tkinter; `requirements.txt` 
 
 The default skill slots are **Q, E, R, F, C** on both bars; each class has different skill assignments. Open **Settings → Key Bindings** to remap slots or the bar-switch key. Duplicate bindings and movement/global shortcuts are rejected.
 
+### Ability progression
+- Level 1 starts with the class primary attack, Dash and the pulse charge.
+- Shed Skin unlocks at Level 2; the class signature skill unlocks at Level 3.
+- The remaining class-specific utility skills unlock one per level from Levels 4–11.
+- Locked abilities display their required level and cannot be cast or upgraded before unlocking.
+
 ## Gameplay additions
 
 * **Home screen**: animated 8-bit synthwave menu (pixel font, neon grid, striped sun, blinking skyline, crawling snake),
