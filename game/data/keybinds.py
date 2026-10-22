@@ -31,3 +31,44 @@ def skill_for_key(class_id, bar_index, slot_keys, pressed_key):
         if str(slot_keys.get(slot_id, "")).lower() == pressed_key:
             return skill_id
     return None
+
+# Every non-starter skill is earned at a class-specific level. Levels 2 and 3
+# teach recovery and the signature move; levels 4-11 add one new combat option
+# per level so the full kit is not available at character creation.
+CLASS_SKILL_UNLOCK_LEVELS = {
+    "viper": {
+        "shed": 2, "class_skill": 3, "spit": 4, "camo": 5, "coil": 6,
+        "rattle": 7, "heat": 8, "scent": 9, "volley": 10, "bulwark": 11,
+    },
+    "python": {
+        "shed": 2, "class_skill": 3, "bulwark": 4, "coil": 5, "rattle": 6,
+        "spit": 7, "heat": 8, "scent": 9, "volley": 10, "camo": 11,
+    },
+    "cobra": {
+        "shed": 2, "class_skill": 3, "volley": 4, "spit": 5, "heat": 6,
+        "coil": 7, "rattle": 8, "scent": 9, "bulwark": 10, "camo": 11,
+    },
+    "mamba": {
+        "shed": 2, "class_skill": 3, "camo": 4, "rattle": 5, "volley": 6,
+        "spit": 7, "coil": 8, "heat": 9, "bulwark": 10, "scent": 11,
+    },
+}
+
+
+def skill_unlock_level(class_id, skill_id):
+    """Return the first character level at which a skill can be used/upgraded."""
+    aliases = {"basic": "strike", "v": "class_skill"}
+    skill_id = aliases.get(skill_id, skill_id)
+    if skill_id in ("dash", "strike"):
+        return 1
+    return CLASS_SKILL_UNLOCK_LEVELS.get(class_id, CLASS_SKILL_UNLOCK_LEVELS["viper"]).get(skill_id, 99)
+
+
+def is_skill_unlocked(class_id, skill_id, level):
+    return int(level) >= skill_unlock_level(class_id, skill_id)
+
+
+def skills_unlocked_at_level(class_id, level):
+    """Return skill IDs newly unlocked at this level, in deterministic table order."""
+    rules = CLASS_SKILL_UNLOCK_LEVELS.get(class_id, CLASS_SKILL_UNLOCK_LEVELS["viper"])
+    return tuple(skill_id for skill_id, required in rules.items() if required == int(level))
