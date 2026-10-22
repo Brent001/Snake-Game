@@ -387,7 +387,7 @@ class _GpuRenderer:
             self.particle_prog,
             [
                 (self.quad_vbo, "2f", "in_pos"),
-                (self.inst_vbo, "2f/i 4f/i 2f/i", "i_pos", "i_color", "i_misc"),
+                (self.inst_vbo, "2f 4f 2f/i", "i_pos", "i_color", "i_misc"),
             ],
         )
         self.ring_vbo = self.ctx.buffer(reserve=4 * 6 * 80 * 96, dynamic=True)
